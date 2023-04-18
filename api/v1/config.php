@@ -10,7 +10,7 @@
 	$puerto='3306';
 	$usuario='root';
 	$pass='123456';
-	$basedatos='vinkasof_santafe';
+	$basedatos='vinkasof_grupoangular';
 	$clienteId=1;
 	$rutaDeAdjuntos="adjuntos/";
 	ini_set("display_errors","On");
