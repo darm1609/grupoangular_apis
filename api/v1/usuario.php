@@ -17,25 +17,6 @@
 
     $data = json_decode(file_get_contents('php://input'));
 
-    function ValidarToken($token, $bd) {
-        $resultado = array();
-        $resultado = Auth::GetData($token);
-        $sql = "SELECT
-        u.Id,
-        u.Correo Login,
-        CONCAT(pp.PrimerNombre,' ',pp.SegundoNombre) Nombres,
-        CONCAT(pp.PrimerApellido,' ',pp.SegundoApellido) Apellidos
-        FROM
-        usuario u
-        INNER JOIN persona pp on u.PersonaId=pp.Id
-        WHERE u.Id='".$resultado->id."';";
-        $resultadoSql = json_decode($bd->ejecutarConsultaJson($sql));
-        if (count($resultadoSql)) {
-            return true;
-        }
-        return false;
-    }
-
     global $clienteId, $servidor, $puerto, $usuario, $pass, $basedatos;
     $bd=new BaseDatos($servidor,$puerto,$usuario,$pass,$basedatos);
 	if($bd->conectado)
@@ -44,33 +25,8 @@
             case "OPTIONS":
                 break;
             case "POST":
-                if(!isset($headers["Authorization"]) or empty($headers["Authorization"])) {
-                    header("HTTP/1.1 401 Unauthorized");
-                    return;
-                }
 
-                $token = trim(str_replace("Bearer"," ",$headers["Authorization"]));
-                if (empty($token)) {
-                    header("HTTP/1.1 401 Unauthorized");
-                    return;
-                }
-
-                if(@Auth::Check($token) == null or !@Auth::Check($token)) {
-                    header("HTTP/1.1 401 Unauthorized");
-                    return;
-                }
-
-                if (!ValidarToken($token, $bd)) {
-                    header("HTTP/1.1 401 Unauthorized");
-                    return;
-                }
-
-                $resultado = array();
-
-                $tokenData = Auth::GetData($token);
-                $usuarioId = $tokenData->id;
-
-                $sql_persona = "INSERT INTO persona (PrimerNombre, SegundoNombre, PrimerApellido, SegundoApellido, EsPropietario, FechaDeCreacion, CreadoPorUsuarioId) VALUES (";
+                $sql_persona = "INSERT INTO persona (PrimerNombre, SegundoNombre, PrimerApellido, SegundoApellido, FechaDeCreacion) VALUES (";
 
                 if (!isset($data->primerNombre))
                     $sql_persona .= "NULL, ";
@@ -92,24 +48,13 @@
                 else
                     $sql_persona .= "'" . $data->segundoApellido . "', ";
 
-                $propietario = "0";
-                if ($data->propietario)
-                    $propietario = "1";
-
-                if (!isset($data->propietario))
-                    $sql_persona .= "NULL, ";
-                else
-                    $sql_persona .= $propietario. ", ";
-
-                $sql_persona .= time() . ", ";
-                
-                $sql_persona .= $usuarioId . ");";
+                $sql_persona .= time() . ");";
 
                 if($bd->ejecutarConsulta($sql_persona)) {
                     $id_persona = $bd->ultimo_result;
 
                     if (isset($data->usuario) and $data->usuario != null) {
-                        $sql_usuario = "INSERT INTO usuario (PersonaId, Correo, Password, FechaDeCreacion, CreadoPorUsuarioId) VALUES (";
+                        $sql_usuario = "INSERT INTO usuario (PersonaId, Correo, Password, FechaDeCreacion) VALUES (";
 
                         $sql_usuario .= $id_persona. ", ";
 
@@ -121,27 +66,13 @@
                         if (!isset($data->usuario->password))
                             $sql_usuario .= "NULL, ";
                         else
-                            $sql_usuario .= "'" . $data->usuario->password . "', ";
+                            $sql_usuario .= "'" . md5($data->usuario->password) . "', ";
 
-                        $sql_usuario .= time() . ", ";
-                
-                        $sql_usuario .= $usuarioId . ");";
+                        $sql_usuario .= time() . ");";
 
                         if($bd->ejecutarConsulta($sql_usuario)) {
                             $id_usuario = $bd->ultimo_result;
 
-                            foreach ($data->usuario->perfiles as $i => $v) {
-                                $sql_usuario_perfil = "INSERT INTO usuario_perfiles (UsuarioId, PerfilId) VALUES (";
-                                
-                                $sql_usuario_perfil .= $id_usuario . ", ";
-        
-                                $sql_usuario_perfil .= $v->Id . ");";
-        
-                                if (!$bd->ejecutarConsulta($sql_usuario_perfil)) {
-                                    header('HTTP/1.1 500 Internal Server Error');
-                                    return;
-                                }
-                            }
                         }
                     }
                 }
@@ -149,27 +80,7 @@
                 echo json_encode($resultado);
                 return;
             case "GET":
-                if(!isset($headers["Authorization"]) or empty($headers["Authorization"])) {
-                    header("HTTP/1.1 401 Unauthorized");
-                    return;
-                }
-
-                $token = trim(str_replace("Bearer"," ",$headers["Authorization"]));
-                if (empty($token)) {
-                    header("HTTP/1.1 401 Unauthorized");
-                    return;
-                }
-
-                if(@Auth::Check($token) == null or !@Auth::Check($token)) {
-                    header("HTTP/1.1 401 Unauthorized");
-                    return;
-                }
-
-                if (!ValidarToken($token, $bd)) {
-                    header("HTTP/1.1 401 Unauthorized");
-                    return;
-                }
-
+                
                 if (isset($_GET["login"])) {
                     $resultado = array();
                     $sql = "SELECT * FROM usuario WHERE Correo = '".$_GET["login"]."';";
