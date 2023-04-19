@@ -1,3 +1,3 @@
 RewriteEngine On
-RewriteRule ^autenticar autenticar.php [NC,L]
-RewriteRule ^usuario usuario.php [NC,L]
+RewriteRule ^authenticate authenticate.php [NC,L]
+RewriteRule ^user user.php [NC,L]
